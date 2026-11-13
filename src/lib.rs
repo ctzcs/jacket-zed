@@ -66,7 +66,7 @@ impl zed::Extension for JacketExtension {
         let command = match binary.path {
             Some(path) if !path.trim().is_empty() => path,
             _ => worktree.which("jailsp").ok_or_else(|| {
-                "未找到 jailsp。请安装 Jacket 并加入 PATH，或设置 lsp.jailsp.binary.path。"
+                "jailsp was not found. Install Jacket and add it to PATH, or set lsp.jailsp.binary.path."
                     .to_string()
             })?,
         };
