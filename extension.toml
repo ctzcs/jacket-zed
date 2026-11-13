@@ -1,0 +1,18 @@
+id = "jacket"
+name = "Jacket (Jai)"
+version = "0.1.0"
+schema_version = 1
+authors = ["Jacket Zed contributors"]
+description = "Jai language support using the local Jacket language server (jailsp)."
+repository = "https://github.com/ctzcs/jacket-zed"
+
+[language_servers.jailsp]
+name = "Jacket Language Server"
+languages = ["Jai"]
+
+[language_servers.jailsp.language_ids]
+Jai = "jai"
+
+[grammars.jai]
+repository = "https://github.com/constantitus/tree-sitter-jai"
+rev = "3f8ee754d6531a1672d9e36cd54e81580fcec02c"

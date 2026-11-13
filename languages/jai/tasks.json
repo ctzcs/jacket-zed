@@ -1,0 +1,59 @@
+[
+  {
+    "label": "Jacket: 运行当前文件",
+    "command": "jacket",
+    "args": ["run", "$ZED_FILE"],
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "tags": ["jai-main"],
+    "save": "current"
+  },
+  {
+    "label": "Jacket: 构建当前文件",
+    "command": "jacket",
+    "args": ["build", "$ZED_FILE"],
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "save": "current"
+  },
+  {
+    "label": "Jacket: 检查当前文件",
+    "command": "jacket",
+    "args": ["check", "$ZED_FILE"],
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "save": "current"
+  },
+  {
+    "label": "Jacket: 运行项目测试",
+    "command": "jacket",
+    "args": ["test"],
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "save": "all"
+  },
+  {
+    "label": "Jacket: 运行项目",
+    "command": "jacket",
+    "args": ["run"],
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "save": "all"
+  },
+  {
+    "label": "Jacket: 构建项目",
+    "command": "jacket",
+    "args": ["build"],
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "save": "all"
+  },
+  {
+    "label": "Jacket: 检查项目",
+    "command": "jacket",
+    "args": ["check"],
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "save": "all"
+  },
+  {
+    "label": "Jacket: Lint 当前文件",
+    "command": "jacket",
+    "args": ["lint", "$ZED_FILE"],
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "save": "current"
+  }
+]
