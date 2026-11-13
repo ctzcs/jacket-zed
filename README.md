@@ -9,6 +9,7 @@ Jai language support using the locally installed [Jacket](https://github.com/mat
 ## Features
 
 - `.jai` detection, Tree-sitter highlighting, brackets, indentation, and function/type outlines.
+- Optional light/dark icon themes with a dedicated J monogram for `.jai` files.
 - Vim function/type/comment text objects and a run button beside `main`.
 - Standard LSP completion, hover, definitions, references, rename, diagnostics, and other features through `jailsp`, subject to Zed's support.
 - Document and selection formatting through `jailsp` and `jaifmt`.
@@ -30,6 +31,24 @@ The registry already has a [Jai extension](https://github.com/seg4lt/zed-jai) us
 5. Open a Jai project and a `.jai` file. Restart Zed if you changed PATH.
 
 The extension finds `jailsp` on the worktree's PATH. It uses stdio without extra arguments.
+
+### File icons
+
+Language detection and file icons are separate in Zed. A file can correctly show **Jai** in the status bar while still having a generic icon in the project tree.
+
+After installing or rebuilding this development extension, run **icon theme selector: toggle** and select **Jacket Icons Dark** or **Jacket Icons Light**. Alternatively, merge this into your global Zed settings:
+
+```json
+{
+  "icon_theme": {
+    "mode": "system",
+    "light": "Jacket Icons Light",
+    "dark": "Jacket Icons Dark"
+  }
+}
+```
+
+These themes add the Jai icon to Zed's built-in icon defaults. Selecting one replaces your current icon theme; it does not overlay another third-party icon theme. Installation alone does not change your selected theme. If the choices are missing after updating, rebuild the development extension from the Extensions page and restart Zed if needed.
 
 ## Configuration
 

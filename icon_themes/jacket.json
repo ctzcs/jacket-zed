@@ -1,0 +1,27 @@
+{
+  "$schema": "https://zed.dev/schema/icon_themes/v0.3.0.json",
+  "name": "Jacket Icons",
+  "author": "ctzcs",
+  "themes": [
+    {
+      "name": "Jacket Icons Dark",
+      "appearance": "dark",
+      "file_suffixes": {
+        "jai": "jai"
+      },
+      "file_icons": {
+        "jai": { "path": "./icons/jai-dark.svg" }
+      }
+    },
+    {
+      "name": "Jacket Icons Light",
+      "appearance": "light",
+      "file_suffixes": {
+        "jai": "jai"
+      },
+      "file_icons": {
+        "jai": { "path": "./icons/jai-light.svg" }
+      }
+    }
+  ]
+}

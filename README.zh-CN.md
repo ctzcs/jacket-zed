@@ -11,6 +11,7 @@
 ## 功能
 
 - `.jai` 文件识别、Tree-sitter 高亮、括号配对、缩进和函数/类型大纲。
+- 可选的明暗图标主题，为文件树里的 `.jai` 文件提供专用 J 字形图标。
 - Vim 函数、类型和注释文本对象，以及 `main` 入口旁的运行按钮。
 - 启动 `jailsp`，向 Zed 提供补全、悬停、跳转、引用、重命名、诊断、Lint、快速修复、内联提示等标准 LSP 功能；具体展示受 Zed 版本支持情况影响。
 - 通过 `jailsp` 调用 `jaifmt`，支持全文和选区格式化。
@@ -28,6 +29,24 @@
 5. 打开 Jai 项目目录和 `.jai` 文件。若修改过系统 PATH，请重启 Zed。
 
 没有配置路径时，扩展使用 Zed 工作区的 PATH 查找 `jailsp`。服务器默认使用 stdio，无需添加参数。
+
+### 文件树图标
+
+Zed 的语言识别与文件图标相互独立：右下角显示 **Jai**，不代表文件树已配置 Jai 图标。
+
+安装或重新构建开发扩展后，运行 **icon theme selector: toggle**，选择 **Jacket Icons Dark** 或 **Jacket Icons Light**。也可在 Zed 的全局设置中合并：
+
+```json
+{
+  "icon_theme": {
+    "mode": "system",
+    "light": "Jacket Icons Light",
+    "dark": "Jacket Icons Dark"
+  }
+}
+```
+
+这两个主题在 Zed 内置默认图标的基础上增加 Jai 图标。选择它们会替换当前图标主题，不会叠加到其他第三方图标主题上；安装本扩展不会自动切换主题。更新后若列表没有这两个选项，请在扩展面板重新构建开发扩展，必要时重启 Zed。
 
 ## 设置
 

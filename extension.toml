@@ -1,10 +1,11 @@
 id = "jacket"
 name = "Jacket (Jai)"
-version = "0.1.0"
+version = "0.1.1"
 schema_version = 1
 authors = ["ctzcs"]
 description = "Jai language support using the local Jacket language server (jailsp)."
 repository = "https://github.com/ctzcs/jacket-zed"
+icon_themes = ["icon_themes/jacket.json"]
 
 [language_servers.jailsp]
 name = "Jacket Language Server"
