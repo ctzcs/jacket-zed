@@ -155,7 +155,7 @@ Tree-sitter grammar 来自 [constantitus/tree-sitter-jai](https://github.com/con
 
 ## 当前验证状态（2026-11-13）
 
-- Windows 本机已通过 10 项配置和语法测试，以及 1 项真实 LSP 集成测试（Jacket 0.35.1）。
+- Windows 本机已通过 11 项配置和语法测试，包含结构体字段及类型标识符高亮回归测试；另外已通过 1 项真实 LSP 集成测试（Jacket 0.35.1）。
 - Rust stable 1.90.0 与本机默认 nightly 均通过测试；已通过格式检查、Clippy，以及 `wasm32-wasip2` / `wasm32-wasip1` 发布构建。
 - 已用隔离示例验证 Jacket 的检查、构建、运行、Lint 和测试命令；运行输出 `Result: 3`，预期输出测试通过。
 - 尚未完成 Zed 界面内的安装验收；LSP 协议联调通过不等同于编辑器 UI 验收。CI 配置已添加，远端执行结果待推送后确认。

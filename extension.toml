@@ -1,6 +1,6 @@
 id = "jacket"
 name = "Jacket (Jai)"
-version = "0.1.1"
+version = "0.1.2"
 schema_version = 1
 authors = ["ctzcs"]
 description = "Jai language support using the local Jacket language server (jailsp)."

@@ -6,10 +6,20 @@
   "struct" "union" "enum" "enum_flags" "operator" "push_context" "interface"
 ] @keyword
 
-(types) @type
+; Capture the identifier itself: a broad parent capture can be hidden by
+; the generic @variable capture on its children.
+(types (identifier) @type)
+(identifier_type (identifier) @type)
+(member_type "." (identifier) @type)
+(member_type_in_procedure_returns "." (identifier) @type)
+(parameterized_struct_type type: (identifier) @type)
 (struct_declaration (identifier) @type)
 (enum_declaration (identifier) @type)
-(parameter (identifier) @variable.parameter)
+(parameter name: (identifier) @variable.parameter)
+(struct_or_union_block
+  (variable_declaration (identifier) @property ":"))
+(struct_or_union_block
+  (const_declaration (identifier) @constant ":"))
 (procedure_declaration (identifier) @function)
 (call_expression function: (identifier) @function)
 (member_expression "." (identifier) @property)

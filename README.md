@@ -125,7 +125,7 @@ cargo build --locked --release --target wasm32-wasip2
 
 [Current Zed versions](https://zed.dev/docs/extensions/developing-extensions) use `wasm32-wasip2`. The output is `target/wasm32-wasip2/release/jacket_zed.wasm`. Development installation builds and loads it automatically. Older Zed versions using `wasm32-wasip1` can build that target instead.
 
-Tests cover configuration validation/merging, query compilation, parsing, outline names, runnable detection, and text object captures. The grammar helper fetches a pinned Git revision and compiles its parser and external scanner; the first run needs Git, network access, and a C compiler.
+Tests cover configuration validation/merging, query compilation, parsing, outline names, runnable detection, text objects, and identifier-level highlighting for fields and types (including qualified, pointer, array, and parameterized types). The grammar helper fetches a pinned Git revision and compiles its parser and external scanner; the first run needs Git, network access, and a C compiler.
 
 With local Jacket installed, run the real stdio LSP integration test:
 

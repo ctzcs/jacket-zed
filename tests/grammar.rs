@@ -90,3 +90,59 @@ fn function_textobjects_include_the_body_without_braces() {
         .iter()
         .any(|(kind, text)| kind == "class.around" && text.starts_with("Point ::")));
 }
+
+#[test]
+fn struct_field_and_type_identifiers_have_specific_highlights() {
+    let source = include_str!("fixtures/highlights.jai");
+    let language = tree_sitter_jai::LANGUAGE.into();
+    let mut parser = Parser::new();
+    parser.set_language(&language).unwrap();
+    let tree = parser.parse(source, None).unwrap();
+    assert!(
+        !tree.root_node().has_error(),
+        "{}",
+        tree.root_node().to_sexp()
+    );
+    let query = Query::new(&language, include_str!("../languages/jai/highlights.scm")).unwrap();
+    let mut cursor = QueryCursor::new();
+    let mut matches = cursor.matches(&query, tree.root_node(), source.as_bytes());
+    let mut highlights = std::collections::BTreeMap::new();
+    while let Some(found) = matches.next() {
+        for capture in found.captures {
+            // A capture of an enclosing `types` node is insufficient: its child
+            // identifier's generic @variable capture can hide it in Zed.
+            if capture.node.kind() == "identifier" {
+                let entry = highlights
+                    .entry((capture.node.start_byte(), capture.node.end_byte()))
+                    .or_insert((0, "variable"));
+                if found.pattern_index >= entry.0 {
+                    *entry = (
+                        found.pattern_index,
+                        query.capture_names()[capture.index as usize],
+                    );
+                }
+            }
+        }
+    }
+    for (range, (_, highlight)) in &highlights {
+        let text = &source[range.0..range.1];
+        let expected = match text {
+            "Gallery" | "UI_Context" | "UI_Theme" | "Material_library" | "Render2D" | "Texture"
+            | "Msdf_Font" | "bool" | "int" | "float32" | "u8" | "Table" => "type",
+            "ui" | "theme" | "materials" | "renderer" | "font_texture" | "font_view" | "ready"
+            | "renderer_ready" | "started" | "failed" | "frames" | "checks" | "scale" | "music"
+            | "volume" | "name" | "items" | "fixed" | "table" | "copied" => "property",
+            "local_count" | "initial_value" => "variable",
+            "MAX_COUNT" => "constant",
+            _ => continue,
+        };
+        assert_eq!(
+            *highlight, expected,
+            "wrong highlight for {text} at {range:?}"
+        );
+    }
+    assert!(
+        highlights.len() > 40,
+        "expected to capture the fixture's identifiers"
+    );
+}
