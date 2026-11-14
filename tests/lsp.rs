@@ -22,7 +22,13 @@ struct Server {
 impl Server {
     fn start() -> Self {
         let binary = std::env::var_os("JAILSP").unwrap_or_else(|| "jailsp".into());
-        let mut child = Command::new(binary)
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        let work = root.join("target/region-lsp-test");
+        std::fs::create_dir_all(&work).unwrap();
+        let mut child = Command::new(std::env::var_os("NODE").unwrap_or_else(|| "node".into()))
+            .arg(root.join("resources/jai-region-proxy.cjs"))
+            .arg(work)
+            .arg(binary)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit())
@@ -136,6 +142,82 @@ impl Server {
             self.handle_message(message);
         }
     }
+}
+
+#[test]
+#[ignore = "requires local Jacket and Node; run cargo test --test lsp -- --ignored --nocapture"]
+fn local_jacket_region_tree_and_folds() {
+    let mut server = Server::start();
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+    let uri = url::Url::from_file_path(root.join("paired_regions.jai"))
+        .unwrap()
+        .to_string();
+    server.request(
+        "initialize",
+        json!({
+            "processId":std::process::id(), "rootUri":url::Url::from_directory_path(root).unwrap().to_string(),
+            "capabilities":{"workspace":{"configuration":true}, "textDocument":{
+                "documentSymbol":{"hierarchicalDocumentSymbolSupport":true}
+            }},
+            "initializationOptions":server_options(&LspSettings::default()).unwrap()
+        }),
+    );
+    server.notify("initialized", json!({}));
+    server.notify(
+        "textDocument/didOpen",
+        json!({"textDocument":{
+            "uri":uri,"languageId":"jai","version":1,
+            "text":include_str!("fixtures/paired_regions.jai")
+        }}),
+    );
+    let params = json!({"textDocument":{"uri":uri}});
+    let symbols = server.request("textDocument/documentSymbol", params.clone());
+    assert_eq!(symbols[0]["name"], "UI", "{symbols}");
+    let types = &symbols[0]["children"][0];
+    assert_eq!(types["name"], "Types");
+    assert_eq!(types["children"][0]["name"], "Gallery");
+    assert_eq!(types["children"][0]["children"][0]["name"], "ready");
+    let draw = &symbols[0]["children"][1]["children"][0];
+    assert_eq!(draw["name"], "draw");
+    assert_eq!(draw["children"][0]["name"], "State");
+    assert_eq!(draw["children"][0]["children"][0]["name"], "value");
+    assert_eq!(symbols[1]["name"], "main");
+    let folds = server.request("textDocument/foldingRange", params.clone());
+    let folds = folds.as_array().unwrap();
+    for (start, end) in [(0, 15), (1, 6), (8, 14), (10, 12)] {
+        assert!(
+            folds
+                .iter()
+                .any(|f| f["kind"] == "region" && f["startLine"] == start && f["endLine"] == end),
+            "{folds:?}"
+        );
+    }
+    assert!(
+        folds
+            .iter()
+            .any(|f| f["startLine"] == 2 && f["endLine"] == 4),
+        "ordinary struct fold missing: {folds:?}"
+    );
+    server.notify(
+        "textDocument/didChange",
+        json!({
+            "textDocument":{"uri":uri,"version":2},
+            "contentChanges":[{"text":"//@region Unfinished\nmain :: () {}\n"}]
+        }),
+    );
+    let symbols = server.request("textDocument/documentSymbol", params.clone());
+    assert_eq!(symbols[0]["name"], "Unfinished");
+    assert_eq!(symbols[0]["range"]["end"]["line"], 0);
+    assert_eq!(symbols[1]["name"], "main");
+    let folds = server.request("textDocument/foldingRange", params);
+    assert!(!folds
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|f| f["kind"] == "region"));
+    server.request("shutdown", Value::Null);
+    server.notify("exit", Value::Null);
+    println!("Jacket proxy: nested region tree, fields, local variables, ordinary folds and edits passed");
 }
 
 impl Drop for Server {

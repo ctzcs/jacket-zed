@@ -11,6 +11,7 @@ Jai language support using the locally installed [Jacket](https://github.com/mat
 - `.jai` detection, Tree-sitter highlighting, brackets, indentation, and function/type outlines.
 - Optional light/dark icon themes with a dedicated J monogram for `.jai` files.
 - Vim function/type/comment text objects and a run button beside `main`.
+- Paired `//@region Title` / `//@endregion` comments for nested outline groups and editor folds.
 - Standard LSP completion, hover, definitions, references, rename, diagnostics, and other features through `jailsp`, subject to Zed's support.
 - Document and selection formatting through `jailsp` and `jaifmt`.
 - Run/build/check current-file and project tasks, project tests, and current-file linting. Tasks save relevant buffers before execution.
@@ -30,7 +31,41 @@ The registry already has a [Jai extension](https://github.com/seg4lt/zed-jai) us
 4. Clone this repository. Run **Install Dev Extension** in Zed and select the repository root. The first build needs network access for dependencies and the grammar.
 5. Open a Jai project and a `.jai` file. Restart Zed if you changed PATH.
 
-The extension finds `jailsp` on the worktree's PATH. It uses stdio without extra arguments.
+The extension finds `jailsp` on the worktree's PATH. A small stdio proxy adds region support using Zed's managed Node.js runtime; no npm packages are needed. Server arguments, environment and other LSP features pass through.
+
+### Region groups and folding
+
+```jai
+//@region UI
+//@region Types
+Gallery :: struct {
+    ready: bool;
+}
+//@endregion
+
+draw :: () {
+}
+//@endregion
+```
+
+Enable these two [Zed language settings](https://zed.dev/docs/reference/all-settings#lsp-folding-ranges) in user or project settings:
+
+```json
+{
+  "languages": {
+    "Jai": {
+      "document_symbols": "on",
+      "document_folding_ranges": "on"
+    }
+  }
+}
+```
+
+Rebuild the development extension after updating. The Outline Panel groups functions, types, fields and nested regions beneath the region title; its arrows expand/collapse the tree. The outline popup is an indented list. In the editor, a region folds through its matching closing marker. Native `jailsp` folds remain available.
+
+Markers are case-sensitive standalone line comments. `// @region 中文标题` is also supported; starts require a nonempty title, and ends must have no title. Unmatched starts remain single-line outline entries without folding the rest of the file; unmatched ends are ignored. Regions pair within the same brace/bracket/parenthesis scope. Markers in strings (including Jai `#string` bodies) and nested block comments are ignored. With `document_symbols` off, Tree-sitter provides opening-comment navigation only, without region hierarchy.
+
+The proxy caches analysis per document version and does not scan on hover requests. Bounded lifecycle logs are stored in the extension work directory as `region-proxy.log`; LSP document text and parameters are not logged. A runnable example is in `tests/fixtures/paired_regions.jai`.
 
 ### File icons
 
@@ -118,6 +153,7 @@ Tasks execute project code independently of the server's `trusted` setting. Run 
 ```sh
 rustup target add wasm32-wasip2
 cargo fmt --all --check
+node --test tests/regions.test.cjs tests/region-proxy.test.cjs
 cargo test --locked
 cargo clippy --locked --all-targets -- -D warnings
 cargo build --locked --release --target wasm32-wasip2
@@ -133,7 +169,7 @@ With local Jacket installed, run the real stdio LSP integration test:
 cargo test --locked --test lsp -- --ignored --nocapture
 ```
 
-Set `JAILSP` to an executable path if it is not on PATH (PowerShell: `$env:JAILSP = 'C:/Tools/Jacket/bin/jailsp.exe'`). This checks completion, hover, definitions, references, rename, formatting, and diagnostics using the extension's initialization configuration. It waits for background diagnostics before references, limits response waits to 30 seconds, and cleans up the server on failure. It does not download tools or change source files. Normal `cargo test` skips this optional test.
+Set `JAILSP` to an executable path if it is not on PATH (PowerShell: `$env:JAILSP = 'C:/Tools/Jacket/bin/jailsp.exe'`). These tests launch the region proxy and real server, checking nested outline groups, folds, edits, completion, hover, definitions, references, rename, formatting, and diagnostics with the extension's initialization configuration. Node.js 22+ is needed on PATH, or set `NODE` to its executable. Tests wait for background diagnostics before references and limit response waits to 30 seconds. They do not download tools or change source files. Normal `cargo test` skips these optional tests.
 
 GitHub Actions checks formatting, tests, Clippy, and Wasm builds on Windows and Linux. Both platforms passed the initial run. Local tests passed with Rust stable 1.90.0 and nightly, including real LSP integration with Jacket 0.35.1. Both Wasm targets and isolated Jacket check/build/run/lint/test commands passed.
 
@@ -142,5 +178,7 @@ Manual Zed validation of the submitted commit is still required before registry 
 ## Licensing
 
 Original extension code is MIT licensed. Jacket is installed separately and uses AGPL-3.0-or-later with its upstream exceptions; its source is not bundled or modified here.
+
+The region proxy and tests are adapted from [ctzcs/zed_odin](https://github.com/ctzcs/zed_odin), with Jai-specific scanning and native folding integration. Its MIT notice is retained in `licenses/odin-extension-MIT.txt`.
 
 The [Tree-sitter Jai grammar](https://github.com/constantitus/tree-sitter-jai) is pinned to `3f8ee754d6531a1672d9e36cd54e81580fcec02c` under MIT-0. This extension's queries were written for that grammar.

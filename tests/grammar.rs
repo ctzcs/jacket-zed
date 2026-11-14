@@ -39,7 +39,10 @@ fn basic_jacket_source_parses() {
 }
 
 fn captures(query: &str) -> Vec<(String, String)> {
-    let source = include_str!("fixtures/basic.jai");
+    captures_in(include_str!("fixtures/basic.jai"), query)
+}
+
+fn captures_in(source: &str, query: &str) -> Vec<(String, String)> {
     let language = tree_sitter_jai::LANGUAGE.into();
     let mut parser = Parser::new();
     parser.set_language(&language).unwrap();
@@ -57,6 +60,35 @@ fn captures(query: &str) -> Vec<(String, String)> {
         }
     }
     captures
+}
+
+#[test]
+fn region_outline_fallback_lists_starts_and_preserves_declarations() {
+    let names: Vec<_> = captures_in(
+        include_str!("fixtures/paired_regions.jai"),
+        include_str!("../languages/jai/outline.scm"),
+    )
+    .into_iter()
+    .filter(|(kind, _)| kind == "name")
+    .map(|(_, name)| name)
+    .collect();
+    assert_eq!(
+        names,
+        [
+            "//@region UI",
+            "//@region Types",
+            "Gallery",
+            "//@region Drawing",
+            "draw",
+            "//@region State",
+            "main",
+        ]
+    );
+    let false_markers = captures_in(
+        "s :: \"//@region Fake\";\n/* //@region Fake */\n//@region\n//@endregion\n",
+        include_str!("../languages/jai/outline.scm"),
+    );
+    assert!(false_markers.is_empty());
 }
 
 #[test]

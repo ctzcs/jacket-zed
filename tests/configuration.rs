@@ -2,6 +2,38 @@ use jacket_zed::server_options;
 use zed_extension_api::{serde_json::json, settings::LspSettings};
 
 #[test]
+fn region_proxy_preserves_server_arguments_and_environment() {
+    let directory = std::path::Path::new("extension work");
+    let command = jacket_zed::region_proxy_command(
+        "node".into(),
+        directory,
+        zed_extension_api::Command {
+            command: "C:/Jacket Tools/jailsp.exe".into(),
+            args: vec!["--example".into(), "value with spaces".into()],
+            env: vec![("JAI_STDLIB".into(), "C:/Jai Tools/stdlib".into())],
+        },
+    );
+    assert_eq!(command.command, "node");
+    assert_eq!(
+        command.args,
+        vec![
+            directory
+                .join("jai-region-proxy.cjs")
+                .to_string_lossy()
+                .into_owned(),
+            "extension work".into(),
+            "C:/Jacket Tools/jailsp.exe".into(),
+            "--example".into(),
+            "value with spaces".into(),
+        ]
+    );
+    assert_eq!(
+        command.env,
+        vec![("JAI_STDLIB".into(), "C:/Jai Tools/stdlib".into())]
+    );
+}
+
+#[test]
 fn compile_time_execution_is_opt_in() {
     let settings = LspSettings::default();
     assert_eq!(

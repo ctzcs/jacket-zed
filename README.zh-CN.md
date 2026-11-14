@@ -13,6 +13,7 @@
 - `.jai` 文件识别、Tree-sitter 高亮、括号配对、缩进和函数/类型大纲。
 - 可选的明暗图标主题，为文件树里的 `.jai` 文件提供专用 J 字形图标。
 - Vim 函数、类型和注释文本对象，以及 `main` 入口旁的运行按钮。
+- `//@region 标题` / `//@endregion` 配对注释，支持嵌套大纲分组和编辑区折叠。
 - 启动 `jailsp`，向 Zed 提供补全、悬停、跳转、引用、重命名、诊断、Lint、快速修复、内联提示等标准 LSP 功能；具体展示受 Zed 版本支持情况影响。
 - 通过 `jailsp` 调用 `jaifmt`，支持全文和选区格式化。
 - Jai 语言任务：运行、构建、检查当前文件或项目，Lint 当前文件，以及运行项目测试；执行前自动保存相关文件。
@@ -28,7 +29,41 @@
 4. 在 Zed 扩展面板运行 **Install Dev Extension**，选择此仓库根目录。首次安装需要联网下载 grammar 和 Rust 依赖；Wasm 目标由 Zed 构建流程处理。
 5. 打开 Jai 项目目录和 `.jai` 文件。若修改过系统 PATH，请重启 Zed。
 
-没有配置路径时，扩展使用 Zed 工作区的 PATH 查找 `jailsp`。服务器默认使用 stdio，无需添加参数。
+没有配置路径时，扩展使用 Zed 工作区的 PATH 查找 `jailsp`。扩展通过 Zed 管理的 Node.js 运行一个 stdio 代理来提供 region 支持，无需安装 npm 包；原有服务器参数、环境变量和其他 LSP 功能继续透传。
+
+### Region 树和折叠
+
+```jai
+//@region UI
+//@region 类型
+Gallery :: struct {
+    ready: bool;
+}
+//@endregion
+
+draw :: () {
+}
+//@endregion
+```
+
+在 Zed 用户或项目设置中启用：
+
+```json
+{
+  "languages": {
+    "Jai": {
+      "document_symbols": "on",
+      "document_folding_ranges": "on"
+    }
+  }
+}
+```
+
+更新后重新构建开发扩展。**大纲面板**会把函数、类型、字段和子 region 组织成可展开/收起的树；大纲弹窗只显示缩进列表。**编辑区**可从起始标记折叠到配对的结束标记，保留 jailsp 提供的普通代码折叠。
+
+标记区分大小写，须单独占一行；也支持 `// @region 中文标题`。起始标记必须带标题，结束标记不带标题。支持嵌套；配对不能跨越不同的花括号、方括号或圆括号作用域。未闭合的起始标记只作为单行导航项，不会折叠后续整个文件；多余的结束标记忽略。字符串（包括 Jai 的 `#string` 多行字符串）和块注释中的标记不生效。
+
+未启用 `document_symbols` 时，Tree-sitter 只提供起始注释的导航项，不提供 region 层级。代理按文档版本缓存结果，不在悬停请求时扫描 region。扩展工作目录的 `region-proxy.log` 保存有大小限制的生命周期日志，不记录 LSP 源码或参数。示例见 `tests/fixtures/paired_regions.jai`。
 
 ### 文件树图标
 
@@ -126,6 +161,7 @@ Lint 与格式化选项也放在 `jacket.toml`，详见 Jacket 文档。保存�
 
 ```powershell
 cargo fmt --check
+node --test tests/regions.test.cjs tests/region-proxy.test.cjs
 cargo test --locked
 cargo clippy --locked --all-targets -- -D warnings
 cargo build --locked --release --target wasm32-wasip2
@@ -141,7 +177,7 @@ cargo build --locked --release --target wasm32-wasip2
 cargo test --locked --test lsp -- --ignored --nocapture
 ```
 
-服务器不在 PATH 时，在 PowerShell 中先设置 `$env:JAILSP = 'C:/Tools/Jacket/bin/jailsp.exe'`，其他 shell 使用相应的环境变量语法。该测试使用扩展的初始化配置，通过 stdio 验证补全、悬停、跳转、引用、重命名、格式化和错误诊断；每次响应等待上限为 30 秒，失败时也会清理测试服务器。引用查询会先等待后台编译发布诊断。测试不自动下载工具链、不修改源码，默认 `cargo test` 跳过此项。
+服务器不在 PATH 时，在 PowerShell 中先设置 `$env:JAILSP = 'C:/Tools/Jacket/bin/jailsp.exe'`。测试需要 Node.js 22+ 在 PATH 中，或设置 `NODE` 为其可执行文件路径。两项测试通过真实代理和 jailsp 验证嵌套 region 树、普通折叠、编辑更新，以及补全、悬停、跳转、引用、重命名、格式化和错误诊断；每次响应等待上限为 30 秒。引用查询会先等待后台编译发布诊断。测试不自动下载工具链、不修改源码，默认 `cargo test` 跳过这两项。
 
 GitHub Actions 在 Windows 和 Linux 上执行格式检查、测试、Clippy 和 Wasm 构建，并保存 Wasm 产物。真实 LSP 联调需在有 Jacket 的环境中单独运行。
 
@@ -151,11 +187,13 @@ GitHub Actions 在 Windows 和 Linux 上执行格式检查、测试、Clippy 和
 
 本扩展原创代码使用 MIT 许可，不包含或修改 Jacket 源代码。Jacket 工具链独立安装，使用上游 AGPL-3.0-or-later 及其例外条款。
 
+Region 代理与测试改编自 [ctzcs/zed_odin](https://github.com/ctzcs/zed_odin)，增加 Jai 字符串处理并保留 jailsp 的原生折叠；MIT 许可声明保存在 `licenses/odin-extension-MIT.txt`。
+
 Tree-sitter grammar 来自 [constantitus/tree-sitter-jai](https://github.com/constantitus/tree-sitter-jai)，固定提交 `3f8ee754d6531a1672d9e36cd54e81580fcec02c`，使用 MIT-0 许可。扩展中的查询为针对该 grammar 编写的 Zed 查询。
 
-## 当前验证状态（2026-11-13）
+## 当前验证状态（2026-11-14）
 
-- Windows 本机已通过 11 项配置和语法测试，包含结构体字段及类型标识符高亮回归测试；另外已通过 1 项真实 LSP 集成测试（Jacket 0.35.1）。
+- Windows 本机已通过配置、语法和 region 代理测试，包含类型高亮、嵌套分组、Jai 字符串、增量编辑和子进程通信；另外已通过 2 项真实 LSP 集成测试（Jacket 0.35.1）。
 - Rust stable 1.90.0 与本机默认 nightly 均通过测试；已通过格式检查、Clippy，以及 `wasm32-wasip2` / `wasm32-wasip1` 发布构建。
 - 已用隔离示例验证 Jacket 的检查、构建、运行、Lint 和测试命令；运行输出 `Result: 3`，预期输出测试通过。
 - 尚未完成 Zed 界面内的安装验收；LSP 协议联调通过不等同于编辑器 UI 验收。CI 配置已添加，远端执行结果待推送后确认。

@@ -7,6 +7,26 @@ use zed_extension_api as zed;
 
 struct JacketExtension;
 
+const REGION_PROXY: &str = include_str!("../resources/jai-region-proxy.cjs");
+const REGIONS: &str = include_str!("../resources/regions.cjs");
+
+pub fn region_proxy_command(node: String, directory: &std::path::Path, server: Command) -> Command {
+    let mut args = vec![
+        directory
+            .join("jai-region-proxy.cjs")
+            .to_string_lossy()
+            .into_owned(),
+        directory.to_string_lossy().into_owned(),
+        server.command,
+    ];
+    args.extend(server.args);
+    Command {
+        command: node,
+        args,
+        env: server.env,
+    }
+}
+
 // initialization_options 使用 jai 节的形状；settings 使用 { "jai": { ... } }。
 // settings 优先，保证初始化和后续配置请求获得同一份选项。
 pub fn server_options(settings: &LspSettings) -> Result<Value> {
@@ -70,11 +90,20 @@ impl zed::Extension for JacketExtension {
                     .to_string()
             })?,
         };
-        Ok(Command {
+        let server = Command {
             command,
             args: binary.arguments.unwrap_or_default(),
             env: binary.env.unwrap_or_default().into_iter().collect(),
-        })
+        };
+        let node = zed::node_binary_path()?;
+        // WASI can write extension work, while Node runs in the project directory.
+        std::fs::write("regions.cjs", REGIONS)
+            .map_err(|error| format!("jailsp: cannot write region support: {error}"))?;
+        std::fs::write("jai-region-proxy.cjs", REGION_PROXY)
+            .map_err(|error| format!("jailsp: cannot write region proxy: {error}"))?;
+        let directory = std::env::current_dir()
+            .map_err(|error| format!("jailsp: cannot locate extension work: {error}"))?;
+        Ok(region_proxy_command(node, &directory, server))
     }
 
     fn language_server_initialization_options(
